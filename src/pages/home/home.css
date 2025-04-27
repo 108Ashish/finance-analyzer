@@ -1,0 +1,57 @@
+.home-container {
+    min-height: 100vh;
+    background: linear-gradient(to right, #e9d5ff, #fce7f3, #fef9c3);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .home-title {
+    font-size: 36px;
+    font-weight: bold;
+    color: #6b21a8;
+    margin-bottom: 32px;
+  }
+  
+  .chart-box {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 24px;
+    width: 100%;
+    max-width: 800px;
+  }
+  
+  .chart-heading {
+    font-size: 20px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-bottom: 16px;
+  }
+
+/* Add these styles to your existing CSS */
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 350px;
+  font-size: 1.2rem;
+  color: #666;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.error {
+  color: #e53e3e;
+  background-color: #fff5f5;
+}
+
+.chart-heading {
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 1.5rem;
+  color: #4b5563;
+}
+  
