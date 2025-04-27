@@ -33,7 +33,8 @@ export default defineConfig({
     // Make sure sources are included in the source maps
     sourcemap: true,
     // Add this line for better compatibility
-    commonjsOptions: { include: [] }
+    commonjsOptions: { include: [/node_modules/] },
+    outDir: 'dist'
   },
   // Add environment variables for Clerk
   define: {
