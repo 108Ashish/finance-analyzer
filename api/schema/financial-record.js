@@ -34,16 +34,7 @@ const financialRecordSchema = new mongoose.Schema({
   bufferTimeoutMS: 30000 // Increase default timeout to 30 seconds
 });
 
-// Add validation pre-save hook
-financialRecordSchema.pre('save', function(next) {
-  if (this.amount === 0) {
-    const err = new Error('Amount cannot be zero');
-    return next(err);
-  }
-  next();
-});
-
-// Check if model already exists to prevent duplicate model error
+// Prevent duplicate model compilation error in development
 const FinancialRecordModel = mongoose.models.FinancialRecord || 
   mongoose.model("FinancialRecord", financialRecordSchema);
 

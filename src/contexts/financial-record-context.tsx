@@ -34,7 +34,6 @@ export const FinancialRecordsProvider = ({
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
 
-  // Add retry helper function
   const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
     let lastError;
     
@@ -75,7 +74,20 @@ export const FinancialRecordsProvider = ({
         
       console.log(`Using endpoint: ${endpoint}`);
       
-      // Use retry logic
+      // First try the health check endpoint to see if API is responsive
+      try {
+        const healthResponse = await fetch('/api/health');
+        if (healthResponse.ok) {
+          const healthData = await healthResponse.json();
+          console.log('API health check:', healthData);
+        } else {
+          console.warn('API health check failed');
+        }
+      } catch (healthErr) {
+        console.warn('Health check error:', healthErr);
+      }
+      
+      // Use retry logic for the main request
       const response = await fetchWithRetry(endpoint);
       const data = await response.json();
       

@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import financialRecordRouter from './routes/financial-records.js';
 import { connectToDatabase } from './utils/mongodb.js';
+import mongoose from 'mongoose';
+import FinancialRecordModel from './schema/financial-record.js';
 
 // Get the current file's directory
 const __filename = fileURLToPath(import.meta.url);
@@ -75,5 +77,53 @@ if (process.env.NODE_ENV !== 'production') {
     });
   });
 }
+
+// MongoDB connection with improved options
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://singhashishsuttle:su1fF8bLAR6OOPDY@financetracker.alicd3x.mongodb.net/financetracker?retryWrites=true&w=majority";
+
+// Cached connection
+let cached = global.mongoose;
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+export async function connectToDatabase() {
+  if (cached.conn) {
+    return cached.conn;
+  }
+
+  if (!cached.promise) {
+    const opts = {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 30000,
+      bufferCommands: false,
+      maxPoolSize: 10,
+      family: 4,
+    };
+
+    cached.promise = mongoose
+      .connect(MONGODB_URI, opts)
+      .then((mongoose) => {
+        console.log('Connected to MongoDB');
+        return mongoose;
+      })
+      .catch((err) => {
+        console.error('MongoDB connection error:', err);
+        cached.promise = null;
+        throw err;
+      });
+  }
+
+  try {
+    cached.conn = await cached.promise;
+    return cached.conn;
+  } catch (e) {
+    cached.promise = null;
+    throw e;
+  }
+}
+
+export { FinancialRecordModel };
 
 export default app;
