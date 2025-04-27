@@ -3,32 +3,45 @@ import FinancialRecordModel from '../schema/financial-record.js';
 
 const router = express.Router();
 
-router.get("/getAllByUserID/:userId", async (req, res) => {
+// Debug middleware for this route
+router.use((req, res, next) => {
+  console.log(`Financial Records API: ${req.method} ${req.url}`);
+  next();
+});
+
+router.get("/getAllByUserID/:userId", async (req, res, next) => {
   try {
     const userId = req.params.userId;
+    console.log(`Fetching records for user: ${userId}`);
     const records = await FinancialRecordModel.find({ userId });
-    if (records.length === 0) {
-      return res.status(404).send("No records found for the user.");
-    }
-    res.status(200).send(records);
+    
+    console.log(`Found ${records.length} records for user ${userId}`);
+    res.status(200).json(records);
   } catch (err) {
-    res.status(500).send(err);
+    console.error("Error fetching records by user ID:", err);
+    next(err);
   }
 });
 
-router.get("/all", async (req, res) => {
+router.get("/all", async (req, res, next) => {
   try {
+    console.log("Fetching all financial records");
     const records = await FinancialRecordModel.find({});
-    res.status(200).send(records);
+    console.log(`Found ${records.length} records`);
+    res.status(200).json(records);
   } catch (err) {
-    res.status(500).send(err);
+    console.error("Error fetching all records:", err);
+    next(err);
   }
 });
 
-router.get("/monthlyTotals", async (req, res) => {
+// Fixed monthlyTotals route
+router.get("/monthlyTotals", async (req, res, next) => {
   try {
     const userId = req.query.userId || "default-user";
     const year = parseInt(req.query.year) || 2025;
+    
+    console.log(`Getting monthly totals for user ${userId}, year ${year}`);
     
     // Aggregate pipeline to get monthly totals
     const monthlyTotals = await FinancialRecordModel.aggregate([
@@ -44,7 +57,7 @@ router.get("/monthlyTotals", async (req, res) => {
       {
         $group: {
           _id: { $month: "$date" },
-          totalAmount: { $sum: "$amount" },
+          amount: { $sum: "$amount" },
           count: { $sum: 1 }
         }
       },
@@ -53,40 +66,49 @@ router.get("/monthlyTotals", async (req, res) => {
       },
       {
         $project: {
-          month: "$_id",
-          totalAmount: 1,
+          month: {
+            $let: {
+              vars: {
+                monthsInString: [
+                  "", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                ]
+              },
+              in: { $arrayElemAt: ["$$monthsInString", "$_id"] }
+            }
+          },
+          amount: 1,
           count: 1,
           _id: 0
         }
       }
     ]);
     
-    // Convert month numbers to names
+    console.log("Monthly totals:", monthlyTotals);
+    
+    // Create an array with all months, filling in zeros for months with no data
     const monthNames = [
       "Jan", "Feb", "Mar", "Apr", "May", "Jun",
       "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ];
     
-    // Format response with all 12 months (including zeros for months with no data)
-    const formattedResponse = monthNames.map((name, idx) => {
-      const monthData = monthlyTotals.find(item => item.month === idx + 1);
-      return {
-        month: name,
-        amount: monthData ? monthData.totalAmount : 0,
-        count: monthData ? monthData.count : 0
-      };
+    const formattedResponse = monthNames.map((monthName) => {
+      const existingData = monthlyTotals.find(item => item.month === monthName);
+      return existingData || { month: monthName, amount: 0, count: 0 };
     });
     
     res.status(200).json(formattedResponse);
   } catch (err) {
     console.error("Error getting monthly totals:", err);
-    res.status(500).send({ error: err.message });
+    next(err);
   }
 });
 
-router.post("/", async (req, res) => {
+// Fix the POST endpoint to create a new record
+router.post("/", async (req, res, next) => {
   try {
-    console.log("Received data:", req.body);
+    console.log("Creating new financial record:", req.body);
+    
     // Ensure there's a userId, use default if not provided
     const recordData = {
       ...req.body,
@@ -96,34 +118,49 @@ router.post("/", async (req, res) => {
     const newRecord = new FinancialRecordModel(recordData);
     const savedRecord = await newRecord.save();
     
-    res.status(200).send(savedRecord);
+    console.log("Record saved:", savedRecord);
+    res.status(201).json(savedRecord);
   } catch (err) {
-    console.error("Error saving record:", err.message);
-    res.status(500).send({ error: err.message });
+    console.error("Error creating record:", err);
+    next(err);
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req, res, next) => {
   try {
+    console.log(`Updating record ${req.params.id}:`, req.body);
     const updatedRecord = await FinancialRecordModel.findByIdAndUpdate(
       req.params.id,
       req.body,
-      { new: true }
+      { new: true, runValidators: true }
     );
-    if (!updatedRecord) return res.status(404).send("Record not found.");
-    res.status(200).send(updatedRecord);
+    
+    if (!updatedRecord) {
+      return res.status(404).json({ error: "Record not found" });
+    }
+    
+    console.log("Record updated:", updatedRecord);
+    res.status(200).json(updatedRecord);
   } catch (err) {
-    res.status(500).send(err);
+    console.error("Error updating record:", err);
+    next(err);
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req, res, next) => {
   try {
-    const deleted = await FinancialRecordModel.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).send("Record not found.");
-    res.status(200).send(deleted);
+    console.log(`Deleting record ${req.params.id}`);
+    const deletedRecord = await FinancialRecordModel.findByIdAndDelete(req.params.id);
+    
+    if (!deletedRecord) {
+      return res.status(404).json({ error: "Record not found" });
+    }
+    
+    console.log("Record deleted successfully");
+    res.status(200).json({ message: "Record deleted successfully" });
   } catch (err) {
-    res.status(500).send(err);
+    console.error("Error deleting record:", err);
+    next(err);
   }
 });
 
