@@ -67,21 +67,19 @@ export const FinancialRecordsProvider = ({
     try {
       console.log("Fetching records from API");
       
-      // Use a different endpoint based on whether user is available
+      // Fix the endpoint to match the server route structure
       const endpoint = user 
-        ? `/api/financial-records/getAllByUserID/${user.id}`
-        : `/api/financial-records/all`;
+        ? `/financial-records/getAllByUserID/${user.id}`  // <-- MODIFY THIS
+        : `/financial-records/all`;  // <-- MODIFY THIS
         
       console.log(`Using endpoint: ${endpoint}`);
       
-      // First try the health check endpoint to see if API is responsive
+      // Try the health check endpoint
       try {
         const healthResponse = await fetch('/api/health');
         if (healthResponse.ok) {
           const healthData = await healthResponse.json();
           console.log('API health check:', healthData);
-        } else {
-          console.warn('API health check failed');
         }
       } catch (healthErr) {
         console.warn('Health check error:', healthErr);
@@ -116,7 +114,7 @@ export const FinancialRecordsProvider = ({
       
       console.log("Sending record:", recordWithUserId);
       
-      const response = await fetch('/api/financial-records', {
+      const response = await fetch('/financial-records', {  // <-- MODIFY THIS
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -142,7 +140,7 @@ export const FinancialRecordsProvider = ({
   const updateRecord = async (id: string, newRecord: FinancialRecord) => {
     setError(null);
     try {
-      const response = await fetch(`/api/financial-records/${id}`, {
+      const response = await fetch(`/financial-records/${id}`, {  // <-- MODIFY THIS
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -170,7 +168,7 @@ export const FinancialRecordsProvider = ({
   const deleteRecord = async (id: string) => {
     setError(null);
     try {
-      const response = await fetch(`/api/financial-records/${id}`, {
+      const response = await fetch(`/financial-records/${id}`, {  // <-- MODIFY THIS
         method: 'DELETE',
       });
 

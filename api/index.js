@@ -52,7 +52,7 @@ app.get('/api/health', async (req, res) => {
 });
 
 // API routes
-app.use('/api/financial-records', financialRecordRouter);
+app.use('/financial-records', financialRecordRouter);
 
 // Improved error handling middleware
 app.use((err, req, res, next) => {

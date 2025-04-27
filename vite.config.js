@@ -9,10 +9,14 @@ export default defineConfig({
     // Proxy API requests during development
     proxy: {
       '/api': {
-        target: 'http://localhost:3000', // Next.js runs on 3000 by default
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path
+        rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/financial-records': {
+        target: 'http://localhost:3001', 
+        changeOrigin: true
       }
     }
   },
