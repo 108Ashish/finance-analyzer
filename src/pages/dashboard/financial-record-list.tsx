@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   FinancialRecord,
   useFinancialRecords,
@@ -6,7 +6,7 @@ import {
 import { useTable, Column, CellProps } from "react-table";
 
 interface EditableCellProps extends CellProps<FinancialRecord> {
-  updateRecord: (rowIndex: number, columnId: string, value: any) => void;
+  updateRecord: (rowIndex: number, columnId: keyof FinancialRecord, value: any) => void;
   editable: boolean;
 }
 
@@ -17,8 +17,14 @@ const EditableCell: React.FC<EditableCellProps> = ({
   updateRecord,
   editable,
 }) => {
+  // Use useEffect to update the value state when initialValue changes
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(initialValue);
+  
+  // Add this effect to sync the value with initialValue changes
+  useEffect(() => {
+    setValue(initialValue);
+  }, [initialValue]);
 
   const onBlur = () => {
     setIsEditing(false);
@@ -60,22 +66,32 @@ const EditableCell: React.FC<EditableCellProps> = ({
 };
 
 export const FinancialRecordList = () => {
-  const { records, updateRecord, deleteRecord } = useFinancialRecords();
+  const { records, updateRecord, deleteRecord, loading: contextLoading } = useFinancialRecords();
   
-  // Add loading state for better UX
+  // Add loading state for better UX, and combine with context loading
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Combined loading state
+  const isProcessing = isLoading || contextLoading;
 
   const updateCellRecord = async (rowIndex: number, columnId: string, value: any) => {
     // Don't update if the record doesn't exist
     if (!records[rowIndex] || !records[rowIndex]._id) return;
     
+    setError(null);
     const id = records[rowIndex]._id as string;
     const recordToUpdate = { ...records[rowIndex] };
     
     // Handle conversion for numeric fields
     if (columnId === "amount") {
-      // Convert value to number for amount field
-      recordToUpdate[columnId] = parseFloat(value);
+      // Validate amount is a valid number
+      const numValue = parseFloat(value);
+      if (isNaN(numValue)) {
+        setError("Amount must be a valid number");
+        return;
+      }
+      recordToUpdate[columnId] = numValue;
     } else {
       recordToUpdate[columnId] = value;
     }
@@ -85,6 +101,7 @@ export const FinancialRecordList = () => {
       await updateRecord(id, recordToUpdate);
     } catch (error) {
       console.error("Error updating record:", error);
+      setError(error instanceof Error ? error.message : "Failed to update record");
     } finally {
       setIsLoading(false);
     }
@@ -154,14 +171,14 @@ export const FinancialRecordList = () => {
           <button
             onClick={() => row.original._id && deleteRecord(row.original._id)}
             className="button"
-            disabled={isLoading}
+            disabled={isProcessing}
           >
             Delete
           </button>
         ),
       },
     ],
-    [records, isLoading]
+    [records, isProcessing]
   );
 
   const { getTableProps, getTableBodyProps, headerGroups, rows, prepareRow } =
@@ -178,6 +195,7 @@ export const FinancialRecordList = () => {
   return (
     <div className="table-container">
       {isLoading && <div className="loading-overlay">Processing...</div>}
+      {error && <div className="error-message">{error}</div>}
       <table {...getTableProps()} className="table">
         <thead>
           {headerGroups.map((headerGroup) => (
