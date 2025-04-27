@@ -26,7 +26,8 @@ const HomePage: React.FC = () => {
     const fetchMonthlyData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:3001/financial-records/monthlyTotals');
+        // Use relative path for API
+        const response = await fetch('/api/financial-records/monthlyTotals');
         
         if (!response.ok) {
           throw new Error('Failed to fetch monthly data');

@@ -1,10 +1,10 @@
-
 import { useUser } from "@clerk/clerk-react";
-import { FinancialRecordForm } from "./financial-record-form.js";
-import { FinancialRecordList } from "./financial-record-list.js";
+import { FinancialRecordForm } from "./financial-record-form.tsx";
+import { FinancialRecordList } from "./financial-record-list.tsx";
 import "./financial-record.css";
-import { useFinancialRecords } from "../../contexts/financial-record-context.js";
+import { useFinancialRecords } from "../../contexts/financial-record-context.tsx";
 import { useMemo } from "react";
+
 const Dashboard = () =>  {
   const { user } = useUser();
   const { records } = useFinancialRecords();
@@ -27,4 +27,5 @@ const Dashboard = () =>  {
     </div>
   );
 };
+
 export default Dashboard;

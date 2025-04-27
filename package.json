@@ -8,10 +8,7 @@
     "build": "tsc && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "seed": "node src/api/schema/seed-data.js",
-    "server": "node api/index.js",
-    "dev:server": "nodemon api/index.js",
-    "start": "vite preview & node api/index.js"
+    "seed": "node api/schema/seed-data.js"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.30.0",
@@ -40,7 +37,6 @@
     "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "~5.7.2",
-    "typescript-eslint": "^8.26.1",
     "vite": "^6.3.3"
   }
 }

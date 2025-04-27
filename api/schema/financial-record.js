@@ -40,7 +40,8 @@ financialRecordSchema.pre('save', function(next) {
   next();
 });
 
-// Use the correct model name
-const FinancialRecordModel = mongoose.model("FinancialRecord", financialRecordSchema);
+// Check if model already exists to prevent duplicate model error
+const FinancialRecordModel = mongoose.models.FinancialRecord || 
+  mongoose.model("FinancialRecord", financialRecordSchema);
 
 export default FinancialRecordModel;

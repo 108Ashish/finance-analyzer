@@ -2,9 +2,15 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import financialRecordRouter from './routes/financial-records.js';
 
-dotenv.config();
+// Get the current file's directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: new URL('../.env', import.meta.url).pathname });
 
 const app = express();
 
@@ -22,8 +28,8 @@ mongoose
     console.error("Failed to connect to MongoDB:", err);
   });
 
-// API routes
-app.use('/api/financial-records', financialRecordRouter);
+// API routes (important: use /financial-records not /api/financial-records)
+app.use('/financial-records', financialRecordRouter);
 
 // For local development
 const PORT = process.env.PORT || 3001;

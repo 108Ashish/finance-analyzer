@@ -1,11 +1,12 @@
 import mongoose from 'mongoose';
 import FinancialRecordModel from './financial-record.js';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+dotenv.config({ path: new URL('../../.env', import.meta.url).pathname });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI;
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://singhashishsuttle:su1fF8bLAR6OOPDY@financetracker.alicd3x.mongodb.net/financetracker?retryWrites=true&w=majority";
 
 // Categories for financial records
 const categories = ['Food', 'Utilities', 'Entertainment', 'Transportation', 'Housing', 'Healthcare', 'Education', 'Shopping'];
@@ -61,6 +62,11 @@ export async function seedDatabase() {
   } catch (error) {
     console.error('Error seeding database:', error);
     return { success: false, error: error.message };
+  } finally {
+    // Close connection if running directly
+    if (process.argv[1] === fileURLToPath(import.meta.url)) {
+      await mongoose.disconnect();
+    }
   }
 }
 
