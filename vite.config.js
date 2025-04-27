@@ -10,12 +10,6 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '')
-      },
-      '/financial-records': {
-        target: 'http://localhost:3001', 
         changeOrigin: true
       }
     }
@@ -24,5 +18,25 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     }
+  },
+  // Properly configure external dependencies
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          clerk: ['@clerk/clerk-react']
+        }
+      }
+    },
+    // Make sure sources are included in the source maps
+    sourcemap: true,
+    // Add this line for better compatibility
+    commonjsOptions: { include: [] }
+  },
+  // Add environment variables for Clerk
+  define: {
+    'process.env.VITE_CLERK_PUBLISHABLE_KEY': JSON.stringify(process.env.PUBLISHABLE_KEY)
   }
 });
