@@ -1,10 +1,10 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import financialRecordRouter from './routes/financial-records.js';
+import { connectToDatabase } from './utils/mongodb.js';
 
 // Get the current file's directory
 const __filename = fileURLToPath(import.meta.url);
@@ -27,44 +27,26 @@ app.use((req, res, next) => {
   next();
 });
 
-// MongoDB connection with improved options
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://singhashishsuttle:su1fF8bLAR6OOPDY@financetracker.alicd3x.mongodb.net/financetracker?retryWrites=true&w=majority";
-
-// Better MongoDB connection options to avoid timeouts
-mongoose
-  .connect(MONGODB_URI, {
-    serverSelectionTimeoutMS: 30000, // Increase timeout to 30 seconds
-    socketTimeoutMS: 45000, // Increase socket timeout
-    family: 4, // Use IPv4, skip trying IPv6
-    maxPoolSize: 10, // Maintain up to 10 socket connections
-    connectTimeoutMS: 30000, // Give up initial connection after 30 seconds
-  })
-  .then(() => console.log("Connected to MongoDB!"))
-  .catch((err) => {
-    console.error("Failed to connect to MongoDB:", err);
-  });
-
-// Handle MongoDB connection errors
-mongoose.connection.on('error', (err) => {
-  console.error('MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected, attempting to reconnect...');
-});
-
-mongoose.connection.on('reconnected', () => {
-  console.log('MongoDB reconnected!');
-});
-
-// Add this inside your express app setup in index.js, before other routes
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    environment: process.env.NODE_ENV || 'development',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    timestamp: new Date().toISOString()
-  });
+// Health check endpoint
+app.get('/api/health', async (req, res) => {
+  try {
+    // Connect to database
+    const mongoose = await connectToDatabase();
+    const isConnected = mongoose.connection.readyState === 1;
+    
+    res.status(200).json({
+      status: 'ok',
+      environment: process.env.NODE_ENV || 'development',
+      mongodb: isConnected ? 'connected' : 'disconnected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API routes
@@ -84,10 +66,14 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Not Found' });
 });
 
-// For local development
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Initialize connection on startup for non-serverless environments
+if (process.env.NODE_ENV !== 'production') {
+  connectToDatabase().then(() => {
+    const PORT = process.env.PORT || 3001;
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  });
+}
 
 export default app;

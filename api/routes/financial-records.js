@@ -1,5 +1,6 @@
 import express from 'express';
 import FinancialRecordModel from '../schema/financial-record.js';
+import { connectToDatabase } from '../utils/mongodb.js';
 
 const router = express.Router();
 
@@ -9,56 +10,64 @@ router.use((req, res, next) => {
   next();
 });
 
-// Helper function to handle MongoDB timeouts
-const withTimeout = async (promise, timeoutMs = 15000, errorMessage = 'Operation timed out') => {
-  let timer;
-  
-  const timeoutPromise = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
-  });
-  
-  try {
-    const result = await Promise.race([promise, timeoutPromise]);
-    clearTimeout(timer);
-    return result;
-  } catch (error) {
-    clearTimeout(timer);
-    throw error;
-  }
-};
-
-router.get("/getAllByUserID/:userId", async (req, res, next) => {
-  try {
-    const userId = req.params.userId;
-    console.log(`Fetching records for user: ${userId}`);
-    const records = await withTimeout(
-      FinancialRecordModel.find({ userId }).lean().exec(),
-      20000,
-      'Database query timed out after 20 seconds'
-    );
+// Helper function with better timeout handling
+const withTimeout = async (asyncFn, timeoutMs = 20000) => {
+  return new Promise(async (resolve, reject) => {
+    // Set timeout
+    const timeoutId = setTimeout(() => {
+      reject(new Error('Database query timed out after 20 seconds'));
+    }, timeoutMs);
     
-    console.log(`Found ${records.length} records for user ${userId}`);
-    res.status(200).json(records);
-  } catch (err) {
-    console.error("Error fetching records by user ID:", err);
-    next(err);
-  }
-});
+    try {
+      // Connect to database first (this uses cached connection when available)
+      await connectToDatabase();
+      
+      // Execute the function
+      const result = await asyncFn();
+      clearTimeout(timeoutId);
+      resolve(result);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      reject(error);
+    }
+  });
+};
 
 router.get("/all", async (req, res, next) => {
   try {
     console.log("Fetching all financial records");
     
-    const records = await withTimeout(
-      FinancialRecordModel.find({}).lean().exec(),
-      20000,
-      'Database query timed out after 20 seconds'
-    );
+    const records = await withTimeout(async () => {
+      return await FinancialRecordModel.find({})
+        .lean()
+        .limit(100) // Limit results to avoid overloading
+        .sort({ date: -1 }); // Sort by date descending
+    });
     
     console.log(`Found ${records.length} records`);
     res.status(200).json(records);
   } catch (err) {
     console.error("Error fetching all records:", err);
+    next(err);
+  }
+});
+
+router.get("/getAllByUserID/:userId", async (req, res, next) => {
+  try {
+    const userId = req.params.userId;
+    console.log(`Fetching records for user: ${userId}`);
+    
+    const records = await withTimeout(async () => {
+      return await FinancialRecordModel.find({ userId })
+        .lean()
+        .limit(100) // Limit results
+        .sort({ date: -1 });
+    });
+    
+    console.log(`Found ${records.length} records for user ${userId}`);
+    res.status(200).json(records);
+  } catch (err) {
+    console.error("Error fetching records by user ID:", err);
     next(err);
   }
 });
