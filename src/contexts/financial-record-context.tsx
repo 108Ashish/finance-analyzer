@@ -34,12 +34,38 @@ export const FinancialRecordsProvider = ({
   const [error, setError] = useState<string | null>(null);
   const { user } = useUser();
 
+  // Add retry helper function
+  const fetchWithRetry = async (url, options = {}, retries = 3, delay = 1000) => {
+    let lastError;
+    
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`API error (${response.status}): ${errorText}`);
+        }
+        return response;
+      } catch (error) {
+        console.warn(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`, error);
+        lastError = error;
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay));
+        
+        // Exponential backoff
+        delay *= 2;
+      }
+    }
+    
+    throw lastError;
+  };
+
   const fetchRecords = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // To debug API connection issues
       console.log("Fetching records from API");
       
       // Use a different endpoint based on whether user is available
@@ -48,16 +74,11 @@ export const FinancialRecordsProvider = ({
         : `/api/financial-records/all`;
         
       console.log(`Using endpoint: ${endpoint}`);
-      const response = await fetch(endpoint);
-
-      if (!response.ok) {
-        console.error(`API response error: ${response.status} ${response.statusText}`);
-        const errorText = await response.text();
-        console.error("Response body:", errorText);
-        throw new Error(`Failed to fetch records (${response.status})`);
-      }
       
+      // Use retry logic
+      const response = await fetchWithRetry(endpoint);
       const data = await response.json();
+      
       console.log(`Fetched ${data.length} records`);
       setRecords(data);
     } catch (error) {

@@ -7,7 +7,7 @@ import { useMemo } from "react";
 
 const Dashboard = () =>  {
   const { user } = useUser();
-  const { records } = useFinancialRecords();
+  const { records, error, loading } = useFinancialRecords();
 
   const totalMonthly = useMemo(() => {
     let totalAmount = 0;
@@ -18,11 +18,27 @@ const Dashboard = () =>  {
     return totalAmount;
   }, [records]);
 
+  // Show a loading state
+  if (loading) {
+    return <div className="loading-state">Loading your financial data...</div>;
+  }
+
+  // Show an error state with retry button
+  if (error) {
+    return (
+      <div className="error-state">
+        <h2>Unable to load your financial data</h2>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Try Again</button>
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard-container">
-      <h1> Welcome {user?.firstName}! Here Are Your Finances:</h1>
+      <h1> Welcome {user?.firstName || 'User'}! Here Are Your Finances:</h1>
       <FinancialRecordForm />
-      <div>Total Monthly: ${totalMonthly}</div>
+      <div>Total Monthly: ${totalMonthly.toFixed(2)}</div>
       <FinancialRecordList />
     </div>
   );

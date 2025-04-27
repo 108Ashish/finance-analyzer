@@ -4,7 +4,8 @@ const financialRecordSchema = new mongoose.Schema({
   userId: { 
     type: String, 
     required: true, 
-    default: "default-user" 
+    default: "default-user",
+    index: true // Add index for faster querying
   },
   date: { 
     type: Date, 
@@ -28,7 +29,9 @@ const financialRecordSchema = new mongoose.Schema({
     required: true 
   },
 }, {
-  timestamps: true
+  timestamps: true,
+  // Add timeout options for operations
+  bufferTimeoutMS: 30000 // Increase default timeout to 30 seconds
 });
 
 // Add validation pre-save hook
