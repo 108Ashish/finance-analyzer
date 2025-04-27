@@ -28,8 +28,8 @@ mongoose
     console.error("Failed to connect to MongoDB:", err);
   });
 
-// API routes (important: use /financial-records not /api/financial-records)
-app.use('/financial-records', financialRecordRouter);
+// API routes - ADDING THE /api PREFIX
+app.use('/api/financial-records', financialRecordRouter);
 
 // For local development
 const PORT = process.env.PORT || 3001;
